@@ -18,8 +18,8 @@ echo "Node: $SLURM_NODELIST"
 echo "Start Time: $(date)"
 echo "========================================="
 
-# Set project directory
-PROJECT_DIR="/hpc/home/cgb45/projects/685_lora_project"
+# Set project directory (automatically detect from script location)
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd $PROJECT_DIR
 
 # Create logs directory if it doesn't exist
