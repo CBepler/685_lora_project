@@ -3,6 +3,7 @@
 #SBATCH --output=logs/lora_sst2_%j.out
 #SBATCH --error=logs/lora_sst2_%j.err
 #SBATCH --partition=courses-gpu
+#SBATCH --account=coursesf25
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -18,9 +19,9 @@ echo "Node: $SLURM_NODELIST"
 echo "Start Time: $(date)"
 echo "========================================="
 
-# Set project directory (automatically detect from script location)
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd $PROJECT_DIR
+# Set project directory (use SLURM submit directory)
+PROJECT_DIR="${SLURM_SUBMIT_DIR}"
+cd "${PROJECT_DIR}"
 
 # Create logs directory if it doesn't exist
 mkdir -p logs
