@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Data
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Model Checkpoints and Results
+results/**/*.pt
+results/**/*.pth
+results/**/*.bin
+results/**/*.safetensors
+checkpoints/
+*.ckpt
+
+# Logs
+logs/
+*.log
+wandb/
+runs/
+
+# HuggingFace Cache
+.cache/
+cache/
+~/.cache/huggingface/
+
+# Experiment Artifacts
+*.png
+*.jpg
+*.pdf
+!docs/*.pdf
+results/**/*.csv
+results/**/*.json
+
+# System Files
+.Trash-*
+Thumbs.db
+
+# Sensitive Information
+*.env
+.env
+secrets.yaml
+credentials.json
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
