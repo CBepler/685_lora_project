@@ -122,9 +122,9 @@ class LoRAModel:
         """Load LoRA adapters."""
         print(f"Loading LoRA adapters from {adapter_path}")
 
-        # Load base model first
-        if self.model is None:
-            self.load_base_model()
+        # Always reload base model fresh to avoid double-wrapping PeftModel
+        self.model = None
+        self.load_base_model()
 
         # Load adapters
         self.model = PeftModel.from_pretrained(self.model, adapter_path)

@@ -35,6 +35,7 @@ class MetricsTracker:
 
     def compute_classification_metrics(self, predictions, labels) -> Dict[str, float]:
         """Compute classification metrics."""
+        predictions = np.array(predictions)
         preds = np.argmax(predictions, axis=1) if predictions.ndim > 1 else predictions
         labels = np.array(labels)
 
