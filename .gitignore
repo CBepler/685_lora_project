@@ -46,12 +46,6 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Model Checkpoints and Results
-results/**/*.pt
-results/**/*.pth
-results/**/*.bin
-results/**/*.safetensors
-checkpoints/
-*.ckpt
 
 # Logs
 logs/
@@ -69,8 +63,6 @@ cache/
 *.jpg
 *.pdf
 !docs/*.pdf
-results/**/*.csv
-results/**/*.json
 
 # System Files
 .Trash-*

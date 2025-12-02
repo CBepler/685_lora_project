@@ -1,0 +1,31 @@
+{
+  "model/model_name": "distilbert-base-uncased",
+  "model/task_type": "masked_lm",
+  "model/total_parameters": 67575354,
+  "model/trainable_parameters": 589824,
+  "model/trainable_percentage": 0.8728389347394317,
+  "model/lora_rank": 32,
+  "model/lora_alpha": 64,
+  "model/target_modules": [
+    "q_lin",
+    "v_lin"
+  ],
+  "model/method": "high_rank_lora",
+  "model/note": "Simplified HiRA using high-rank LoRA approximation",
+  "epoch_1/train_loss": 1.3619854188173166,
+  "memory/system_memory_percent": 2.8,
+  "memory/system_memory_used_gb": 13.340682983398438,
+  "memory/gpu_memory_allocated_gb": 0.27306032180786133,
+  "memory/gpu_memory_reserved_gb": 5.94140625,
+  "memory/gpu_memory_max_allocated_gb": 3.091604232788086,
+  "epoch_2/train_loss": 0.9760620472737647,
+  "epoch_3/train_loss": 0.9641634462965339,
+  "training_time_seconds": 1449.9272072315216,
+  "inference/avg_inference_time_per_sample": 0.0058874465525150296,
+  "inference/throughput_samples_per_second": 169.85292198921363,
+  "inference/total_samples_measured": 320,
+  "final_model/total_parameters": 67575354,
+  "final_model/trainable_parameters": 0,
+  "final_model/trainable_percentage": 0.0,
+  "final_model/model_size_mb": 257.7834243774414
+}
