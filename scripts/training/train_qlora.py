@@ -194,7 +194,9 @@ def main():
     )
 
     model = qlora_model.get_model()
-    # Note: QLoRA model is already on the correct device due to device_map
+    # Note: QLoRA model is on cuda:0 due to explicit device_map
+    # Override device to match model placement
+    args.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     # Log model info
     model_info = qlora_model.get_model_info()
@@ -209,9 +211,10 @@ def main():
     # Get memory footprint
     memory_footprint = qlora_model.get_memory_footprint()
     print(f"\nMemory Footprint:")
-    print(f"  Total memory: {memory_footprint['total_memory_mb']:.2f} MB")
-    print(f"  Quantized model: {memory_footprint['quantized_model_mb']:.2f} MB")
-    print(f"  LoRA adapters: {memory_footprint['lora_adapters_mb']:.2f} MB")
+    print(f"  Model memory: {memory_footprint['model_memory_footprint_mb']:.2f} MB")
+    if 'gpu_memory_allocated_mb' in memory_footprint:
+        print(f"  GPU allocated: {memory_footprint['gpu_memory_allocated_mb']:.2f} MB")
+        print(f"  GPU reserved: {memory_footprint['gpu_memory_reserved_mb']:.2f} MB")
     metrics_tracker.log_metrics(memory_footprint, prefix="memory_footprint")
 
     # Setup optimizer and scheduler

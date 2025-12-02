@@ -94,6 +94,28 @@ class DatasetLoader:
 
         return tokenized
 
+    def preprocess_masked_lm(self, examples):
+        """Preprocess examples for masked language modeling tasks."""
+        text_column = self.config["text_column"]
+        texts = examples[text_column]
+
+        # Filter empty texts
+        texts = [text if text and len(text) > 0 else " " for text in texts]
+
+        # Tokenize
+        tokenized = self.tokenizer(
+            texts,
+            padding="max_length",
+            truncation=True,
+            max_length=self.config["max_length"],
+            return_tensors=None,
+        )
+
+        # For masked LM, labels are the same as input_ids (masking happens during training)
+        tokenized["labels"] = tokenized["input_ids"].copy()
+
+        return tokenized
+
     def prepare_datasets(self, data_dir: Optional[str] = None):
         """Load and preprocess datasets."""
         # Load raw data
@@ -104,6 +126,8 @@ class DatasetLoader:
             preprocessor = self.preprocess_classification
         elif self.config["task_type"] == "generation":
             preprocessor = self.preprocess_generation
+        elif self.config["task_type"] == "masked_lm":
+            preprocessor = self.preprocess_masked_lm
         else:
             raise ValueError(f"Unknown task type: {self.config['task_type']}")
 

@@ -28,7 +28,7 @@ datasets:
     name: "Salesforce/wikitext"
     config: "wikitext-2-raw-v1"
     text_column: "text"
-    task_type: "generation"
+    task_type: "masked_lm"
     max_length: 256
 
 # Training Configuration (shared across all methods)

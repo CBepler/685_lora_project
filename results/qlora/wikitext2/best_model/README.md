@@ -1,8 +1,8 @@
 ---
-base_model: distilbert-base-uncased
+base_model: bert-base-uncased
 library_name: peft
 tags:
-- base_model:adapter:distilbert-base-uncased
+- base_model:adapter:bert-base-uncased
 - lora
 - transformers
 ---
@@ -204,4 +204,3 @@ Carbon emissions can be estimated using the [Machine Learning Impact calculator]
 ### Framework versions
 
 - PEFT 0.18.0
-- PEFT 0.17.1

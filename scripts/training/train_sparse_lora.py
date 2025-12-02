@@ -246,8 +246,8 @@ def main():
             print(f"Applying sparsity pruning...")
             sparse_lora_model.apply_sparsity()
             sparsity_stats = sparse_lora_model.get_sparsity_stats()
-            print(f"  Current sparsity: {sparsity_stats['overall_sparsity'] * 100:.2f}%")
-            print(f"  Non-zero parameters: {sparsity_stats['non_zero_params']:,}")
+            print(f"  Current sparsity: {sparsity_stats['sparsity_percentage']:.2f}%")
+            print(f"  Non-zero parameters: {sparsity_stats['nonzero_parameters']:,}")
             metrics_tracker.log_metrics(sparsity_stats, prefix=f"epoch_{epoch+1}/sparsity")
 
         # Evaluate on validation set

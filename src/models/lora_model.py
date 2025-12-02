@@ -6,6 +6,7 @@ import torch
 from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForCausalLM,
+    AutoModelForMaskedLM,
     AutoConfig,
 )
 from peft import (
@@ -67,6 +68,8 @@ class LoRAModel:
             )
         elif self.task_type == "generation":
             self.model = AutoModelForCausalLM.from_pretrained(self.model_name)
+        elif self.task_type == "masked_lm":
+            self.model = AutoModelForMaskedLM.from_pretrained(self.model_name)
         else:
             raise ValueError(f"Unknown task type: {self.task_type}")
 
@@ -83,6 +86,8 @@ class LoRAModel:
             peft_task_type = TaskType.SEQ_CLS
         elif self.task_type == "generation":
             peft_task_type = TaskType.CAUSAL_LM
+        elif self.task_type == "masked_lm":
+            peft_task_type = TaskType.FEATURE_EXTRACTION
         else:
             raise ValueError(f"Unknown task type: {self.task_type}")
 

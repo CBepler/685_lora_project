@@ -26,20 +26,13 @@ cd "${PROJECT_DIR}"
 # Create logs directory if it doesn't exist
 mkdir -p logs
 
-# Load necessary modules (if needed)
-# module load python/3.8
-# module load cuda/11.8
-
-# Activate virtual environment if you have one
-# source venv/bin/activate
-
-# Install requirements if needed
-echo "Installing requirements..."
-pip install -q -r requirements.txt
+# Activate virtual environment
+echo "Activating virtual environment..."
+source "${PROJECT_DIR}/.venv/bin/activate"
 
 # Download datasets if not already downloaded
 echo "Checking for datasets..."
-if [ ! -d "data/sst2" ] && [ ! -d "data/imdb" ] && [ ! -d "data/wikitext2" ]; then
+if [ ! -d "data/sst2" ] || [ ! -d "data/imdb" ] || [ ! -d "data/wikitext2" ]; then
     echo "Downloading datasets..."
     python scripts/prepare_datasets.py
 else
