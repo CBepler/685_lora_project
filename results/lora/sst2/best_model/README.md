@@ -2,205 +2,134 @@
 base_model: distilbert-base-uncased
 library_name: peft
 tags:
-- base_model:adapter:distilbert-base-uncased
 - lora
-- transformers
+- lora
+- sentiment-analysis
+- sst2
+datasets:
+- sst2
+metrics:
+- accuracy
+- f1
 ---
 
-# Model Card for Model ID
+# LoRA - distilbert-base-uncased fine-tuned on SST-2
 
-<!-- Provide a quick summary of what the model is/does. -->
+## Model Description
 
+Low-Rank Adaptation (LoRA) - Parameter-efficient fine-tuning using low-rank matrix decomposition
 
+This model has been fine-tuned on the **SST-2** dataset for **Sentiment Analysis** using LoRA.
 
-## Model Details
+- **Base Model:** distilbert-base-uncased
+- **Task:** Sentiment Analysis
+- **Dataset:** SST-2
+- **Method:** LoRA
+- **Fine-tuning Technique:** Parameter-Efficient Fine-Tuning (PEFT)
 
-### Model Description
+## Training Configuration
 
-<!-- Provide a longer summary of what this model is. -->
+### LoRA/Adapter Configuration
+- **Rank (r):** 8
+- **Alpha:** 16
+- **Target Modules:** `q_lin`, `v_lin`
+- **Dropout:** 0.1
 
+### Training Hyperparameters
+- **Number of Epochs:** 3
+- **Batch Size:** 16
+- **Learning Rate:** 3e-4
+- **Weight Decay:** 0.01
+- **Warmup Steps:** 100
+- **Optimizer:** AdamW
+- **Scheduler:** Linear with warmup
 
+## Performance Metrics
 
-- **Developed by:** [More Information Needed]
-- **Funded by [optional]:** [More Information Needed]
-- **Shared by [optional]:** [More Information Needed]
-- **Model type:** [More Information Needed]
-- **Language(s) (NLP):** [More Information Needed]
-- **License:** [More Information Needed]
-- **Finetuned from model [optional]:** [More Information Needed]
+### Model Size and Efficiency
+- **Total Parameters:** 67,694,596
+- **Trainable Parameters:** 739,586 (1.09% of total)
+- **Model Size:** N/A MB
 
-### Model Sources [optional]
+### Classification Results
+- **Test Accuracy:** 0.9002
+- **Test F1 Score:** 0.9002
 
-<!-- Provide the basic links for the model. -->
+## Usage
 
-- **Repository:** [More Information Needed]
-- **Paper [optional]:** [More Information Needed]
-- **Demo [optional]:** [More Information Needed]
+### Loading the Model
 
-## Uses
+```python
+from transformers import AutoModelForSequenceClassification
+from peft import PeftModel
 
-<!-- Address questions around how the model is intended to be used, including the foreseeable users of the model and those affected by the model. -->
+# Load base model
+base_model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased")
 
-### Direct Use
+# Load adapter
+model = PeftModel.from_pretrained(base_model, "path/to/adapter")
+```
 
-<!-- This section is for the model use without fine-tuning or plugging into a larger ecosystem/app. -->
+### Inference Example
 
-[More Information Needed]
+```python
+from transformers import AutoTokenizer
 
-### Downstream Use [optional]
+tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
-<!-- This section is for the model use when fine-tuned for a task, or when plugged into a larger ecosystem/app -->
+# Prepare input
+text = "This is a great movie!"
+inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
 
-[More Information Needed]
+# Get predictions
+outputs = model(**inputs)
+predictions = outputs.logits.argmax(dim=-1)
+```
 
-### Out-of-Scope Use
+## Comparison with Other Methods
 
-<!-- This section addresses misuse, malicious use, and uses that the model will not work well for. -->
+This model is part of a comprehensive comparison of efficient fine-tuning methods:
+- **LoRA**: Standard low-rank adaptation
+- **Sparse LoRA**: LoRA with sparsity constraints
+- **QLoRA**: Quantized LoRA (4-bit)
+- **HiRA**: High-rank adaptation with Hadamard multiplication
 
-[More Information Needed]
+See the [project repository](.) for detailed comparisons across all methods.
 
-## Bias, Risks, and Limitations
+## Limitations
 
-<!-- This section is meant to convey both technical and sociotechnical limitations. -->
+- This model is specifically fine-tuned for sentiment analysis on SST-2
+- Performance may vary on out-of-distribution data
+- The model inherits biases present in the base model and training data
 
-[More Information Needed]
+## Citation
 
-### Recommendations
+If you use this model, please cite the original papers:
 
-<!-- This section is meant to convey recommendations with respect to the bias, risk, and technical limitations. -->
+**LoRA:**
+```bibtex
+@inproceedings{hu2022lora,
+  title={LoRA: Low-Rank Adaptation of Large Language Models},
+  author={Hu, Edward J and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu and Chen, Weizhu},
+  booktitle={International Conference on Learning Representations},
+  year={2022}
+}
+```
 
-Users (both direct and downstream) should be made aware of the risks, biases and limitations of the model. More information needed for further recommendations.
+## Framework Versions
+- **Transformers:** 4.x
+- **PEFT:** 0.18.0
+- **PyTorch:** 2.x
+- **Python:** 3.9+
 
-## How to Get Started with the Model
+## License
 
-Use the code below to get started with the model.
+This adapter follows the license of the base model (distilbert-base-uncased).
 
-[More Information Needed]
+## Model Card Authors
 
-## Training Details
+Generated as part of ECE 685D course project (Fall 2025) on efficient fine-tuning methods for large language models.
 
-### Training Data
+---
 
-<!-- This should link to a Dataset Card, perhaps with a short stub of information on what the training data is all about as well as documentation related to data pre-processing or additional filtering. -->
-
-[More Information Needed]
-
-### Training Procedure
-
-<!-- This relates heavily to the Technical Specifications. Content here should link to that section when it is relevant to the training procedure. -->
-
-#### Preprocessing [optional]
-
-[More Information Needed]
-
-
-#### Training Hyperparameters
-
-- **Training regime:** [More Information Needed] <!--fp32, fp16 mixed precision, bf16 mixed precision, bf16 non-mixed precision, fp16 non-mixed precision, fp8 mixed precision -->
-
-#### Speeds, Sizes, Times [optional]
-
-<!-- This section provides information about throughput, start/end time, checkpoint size if relevant, etc. -->
-
-[More Information Needed]
-
-## Evaluation
-
-<!-- This section describes the evaluation protocols and provides the results. -->
-
-### Testing Data, Factors & Metrics
-
-#### Testing Data
-
-<!-- This should link to a Dataset Card if possible. -->
-
-[More Information Needed]
-
-#### Factors
-
-<!-- These are the things the evaluation is disaggregating by, e.g., subpopulations or domains. -->
-
-[More Information Needed]
-
-#### Metrics
-
-<!-- These are the evaluation metrics being used, ideally with a description of why. -->
-
-[More Information Needed]
-
-### Results
-
-[More Information Needed]
-
-#### Summary
-
-
-
-## Model Examination [optional]
-
-<!-- Relevant interpretability work for the model goes here -->
-
-[More Information Needed]
-
-## Environmental Impact
-
-<!-- Total emissions (in grams of CO2eq) and additional considerations, such as electricity usage, go here. Edit the suggested text below accordingly -->
-
-Carbon emissions can be estimated using the [Machine Learning Impact calculator](https://mlco2.github.io/impact#compute) presented in [Lacoste et al. (2019)](https://arxiv.org/abs/1910.09700).
-
-- **Hardware Type:** [More Information Needed]
-- **Hours used:** [More Information Needed]
-- **Cloud Provider:** [More Information Needed]
-- **Compute Region:** [More Information Needed]
-- **Carbon Emitted:** [More Information Needed]
-
-## Technical Specifications [optional]
-
-### Model Architecture and Objective
-
-[More Information Needed]
-
-### Compute Infrastructure
-
-[More Information Needed]
-
-#### Hardware
-
-[More Information Needed]
-
-#### Software
-
-[More Information Needed]
-
-## Citation [optional]
-
-<!-- If there is a paper or blog post introducing the model, the APA and Bibtex information for that should go in this section. -->
-
-**BibTeX:**
-
-[More Information Needed]
-
-**APA:**
-
-[More Information Needed]
-
-## Glossary [optional]
-
-<!-- If relevant, include terms and calculations in this section that can help readers understand the model or model card. -->
-
-[More Information Needed]
-
-## More Information [optional]
-
-[More Information Needed]
-
-## Model Card Authors [optional]
-
-[More Information Needed]
-
-## Model Card Contact
-
-[More Information Needed]
-### Framework versions
-
-- PEFT 0.18.0
+*This model card was generated on 2025-12-02*

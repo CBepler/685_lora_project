@@ -1,4 +1,8 @@
 {
+  "trainable_parameters": 589824,
+  "total_parameters": 67575354,
+  "trainable_percentage": 0.8728,
+  "inference_throughput_samples_per_sec": 169.85,
   "model/model_name": "distilbert-base-uncased",
   "model/task_type": "masked_lm",
   "model/total_parameters": 67575354,

@@ -1,0 +1,9 @@
+{
+  "trainable_parameters": 147456,
+  "total_parameters": 67132986,
+  "trainable_percentage": 0.2196,
+  "sparsity_percentage": 50.0,
+  "zero_parameters": 73728,
+  "total_lora_parameters": 147456,
+  "nonzero_parameters": 73728
+}

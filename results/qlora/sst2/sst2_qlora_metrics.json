@@ -1,0 +1,7 @@
+{
+  "trainable_parameters": 443906,
+  "total_parameters": 109927684,
+  "trainable_percentage": 0.4038,
+  "test_accuracy": 0.922,
+  "test_f1": 0.922
+}

@@ -1,0 +1,6 @@
+{
+  "trainable_parameters": 442368,
+  "total_parameters": 109956666,
+  "trainable_percentage": 0.4023,
+  "inference_throughput_samples_per_sec": 100.08
+}
