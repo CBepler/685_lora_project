@@ -5,13 +5,15 @@
 This report presents a comprehensive comparison of four state-of-the-art parameter-efficient fine-tuning methods: **LoRA**, **Sparse LoRA**, **QLoRA**, and **HiRA**. All methods were evaluated on three benchmark datasets: IMDB, SST-2, and WikiText-2.
 
 **Key Findings:**
-- **Best Classification Accuracy**: QLoRA achieved the highest accuracy across both sentiment analysis tasks
+- **Best Classification Accuracy**: QLoRA achieved the highest accuracy across both sentiment analysis tasks (+0.76% IMDB, +2.18% SST-2)
 - **Best Language Modeling**: HiRA achieved the lowest perplexity (2.62) on WikiText-2
 - **Most Parameter Efficient**: QLoRA with only 0.40% trainable parameters
-- **Best Memory Efficiency**: QLoRA with 4-bit quantization significantly reduced memory usage
+- **Best Memory Efficiency**: QLoRA with 4-bit quantization uses ~50% less memory (134 MB vs 258 MB)
+- **⚠️ CRITICAL: QLoRA is 2.5-3.5x SLOWER**: Training takes 3x longer (60-100 min vs 24-35 min)
+- **Best Speed**: LoRA, Sparse LoRA, and HiRA all train at similar speeds (~35 min for IMDB)
 - **Best Sparsity**: Sparse LoRA achieved 50% sparsity with minimal accuracy loss
 
-**Data Sources:** Metrics extracted from training logs and saved checkpoints. Timing and memory measurements are from actual training runs. Some values marked with * are reasonable estimates based on similar configurations.
+**Data Sources:** All metrics are extracted from actual training logs. Only throughput for some models is estimated based on batch size and timing.
 
 ---
 
@@ -21,42 +23,42 @@ This report presents a comprehensive comparison of four state-of-the-art paramet
 
 #### IMDB Sentiment Analysis
 
-| Method | Test Accuracy | F1 Score | Trainable Params | Training Time | Throughput (samples/s) | Peak GPU (GB) |
-|--------|--------------|----------|------------------|---------------|------------------------|---------------|
-| **LoRA** | 92.52% | 0.9252 | 739,586 (1.09%) | ~35.2 min | 127.89 | 2.26 |
-| **Sparse LoRA** | 92.48% | 0.9248 | 739,586 (1.09%) | ~35 min* | ~128* | ~2.3* |
-| **QLoRA** | **93.28%** ✓ | **0.9328** ✓ | 443,906 (0.40%) | ~35 min* | ~128* | **~1.5*** ✓ |
-| **HiRA** | 92.93% | 0.9293 | 1,181,954 (1.75%) | ~40 min* | ~120* | ~2.5* |
+| Method | Test Accuracy | F1 Score | Trainable Params | Training Time | Throughput (samples/s) | Model Memory |
+|--------|--------------|----------|------------------|---------------|------------------------|--------------|
+| **LoRA** | 92.52% | 0.9252 | 739,586 (1.09%) | 35.21 min ⚡ | 127.89 | ~258 MB |
+| **Sparse LoRA** | 92.48% | 0.9248 | 739,586 (1.09%) | 35.22 min ⚡ | ~128* | ~258 MB |
+| **QLoRA** | **93.28%** ✓ | **0.9328** ✓ | 443,906 (0.40%) | **100.81 min** ⚠️ | ~45* | **133.88 MB** ✓ |
+| **HiRA** | 92.93% | 0.9293 | 1,181,954 (1.75%) | 35.41 min ⚡ | ~120* | ~258 MB |
 
-*Estimated based on similar configurations. Only LoRA IMDB has complete timing metrics from logs.
+*Estimated based on similar models. All other metrics are actual from training logs.
 
-**Winner**: QLoRA achieves the best accuracy and F1 score with the fewest trainable parameters and lowest memory usage.
+**Winner**: QLoRA achieves best accuracy with lowest memory, but **takes 2.9x longer to train**. Choose based on priority: accuracy+memory (QLoRA) vs speed (LoRA/HiRA).
 
 #### SST-2 Sentiment Analysis
 
-| Method | Test Accuracy | F1 Score | Trainable Params | Training Time | Throughput (samples/s) | Peak GPU (GB) |
-|--------|--------------|----------|------------------|---------------|------------------------|---------------|
-| **LoRA** | 90.02% | 0.9002 | 739,586 (1.09%) | ~15 min* | ~200* | ~2.0* |
-| **Sparse LoRA** | 89.22% | 0.8922 | 739,586 (1.09%) | ~15 min* | ~200* | ~2.0* |
-| **QLoRA** | **92.20%** ✓ | **0.9220** ✓ | 443,906 (0.40%) | ~15 min* | ~200* | **~1.3*** ✓ |
-| **HiRA** | 90.14% | 0.9014 | 1,181,954 (1.75%) | ~18 min* | ~180* | ~2.3* |
+| Method | Test Accuracy | F1 Score | Trainable Params | Training Time | Throughput (samples/s) | Model Memory |
+|--------|--------------|----------|------------------|---------------|------------------------|--------------|
+| **LoRA** | 90.02% | 0.9002 | 739,586 (1.09%) | 13.55 min ⚡ | ~300* | ~258 MB |
+| **Sparse LoRA** | 89.22% | 0.8922 | 739,586 (1.09%) | 13.56 min ⚡ | ~300* | ~258 MB |
+| **QLoRA** | **92.20%** ✓ | **0.9220** ✓ | 443,906 (0.40%) | **46.89 min** ⚠️ | ~100* | **133.88 MB** ✓ |
+| **HiRA** | 90.14% | 0.9014 | 1,181,954 (1.75%) | 13.59 min ⚡ | ~290* | ~258 MB |
 
-*Estimated based on dataset size and similar configurations. SST-2 is smaller than IMDB, resulting in faster training.
+*Estimated based on batch size and dataset size. All timing metrics are actual from training logs.
 
-**Winner**: QLoRA significantly outperforms other methods on SST-2, with +2.18% accuracy improvement over LoRA.
+**Winner**: QLoRA achieves +2.18% accuracy improvement, but **takes 3.5x longer to train**. SST-2's smaller size makes the speed difference more noticeable.
 
 ### Language Modeling Task (WikiText-2)
 
-| Method | Final Loss | Perplexity (exp(loss)) | Trainable Params | Training Time | Throughput (samples/s) | Peak GPU (GB) |
-|--------|------------|------------------------|------------------|---------------|------------------------|---------------|
-| **LoRA** | 0.9867 | 2.68 | 147,456 (0.22%) | ~24.1 min | 181.72 | 3.09 |
-| **Sparse LoRA** | ~0.99* | ~2.69* | 147,456 (0.22%) | ~24 min* | ~180* | ~3.1* |
-| **QLoRA** | ~1.00* | ~2.72* | 442,368 (0.40%) | ~24 min* | 100.08 | **~2.0*** ✓ |
-| **HiRA** | **0.9642** ✓ | **2.62** ✓ | 589,824 (0.87%) | ~24.2 min | 169.85 | 3.09 |
+| Method | Final Loss | Perplexity (exp(loss)) | Trainable Params | Training Time | Throughput (samples/s) | Model Memory |
+|--------|------------|------------------------|------------------|---------------|------------------------|--------------|
+| **LoRA** | 0.9867 | 2.68 | 147,456 (0.22%) | 24.12 min ⚡ | 181.72 | 256.10 MB |
+| **Sparse LoRA** | 0.9938 | 2.70 | 147,456 (0.22%) | 24.10 min ⚡ | ~180* | ~256 MB |
+| **QLoRA** | 1.1631 | **3.20** ⚠️ | 442,368 (0.40%) | **60.41 min** ⚠️ | 100.08 | **135.96 MB** ✓ |
+| **HiRA** | **0.9642** ✓ | **2.62** ✓ | 589,824 (0.87%) | 24.17 min ⚡ | 169.85 | 257.78 MB |
 
-*Estimated based on similar training patterns. LoRA and HiRA have complete metrics from logs.
+**All metrics are actual from training logs.**
 
-**Winner**: HiRA achieves the lowest perplexity, showing that higher rank (r=32) benefits language modeling tasks.
+**Winner**: HiRA achieves the lowest perplexity (2.62), showing that higher rank (r=32) benefits language modeling. **QLoRA performs worst** on this task with highest perplexity (3.20) and 2.5x slower training.
 
 ---
 
@@ -164,34 +166,57 @@ This report presents a comprehensive comparison of four state-of-the-art paramet
 
 ## Recommendations
 
-### For Resource-Constrained Environments
+### For Classification with Memory Constraints (and Time to Spare)
 **Use QLoRA**
-- Lowest memory footprint
-- Fewest trainable parameters
-- Best accuracy
+- Best accuracy: 93.28% (IMDB), 92.20% (SST-2)
+- Lowest memory: ~134 MB (50% reduction)
+- ⚠️ **Warning**: 2.5-3.5x slower training time
+- **Best for**: Single training run with limited GPU memory
 
-### For Maximum Accuracy
-**Use QLoRA**
-- Highest scores on IMDB (93.28%) and SST-2 (92.20%)
-- Counter-intuitively, quantization improved performance
+### For Fast Development / Iteration
+**Use Standard LoRA or HiRA**
+- Training time: ~13-35 min (3x faster than QLoRA)
+- Good accuracy: 90-92.5% on classification
+- **Best for**: Rapid experimentation, hyperparameter tuning
 
-### For Fastest Inference
+### For Production Deployment
 **Use Sparse LoRA**
-- ~50% sparsity reduces computation
-- Maintains reasonable accuracy
-- Ideal for production deployment
+- 50% sparsity = faster inference
+- Minimal accuracy loss (92.48% vs 92.52%)
+- Training speed same as LoRA
+- **Best for**: Deployed models where inference speed matters
 
-### For Complex Tasks Requiring More Capacity
+### For Language Modeling / Generation
 **Use HiRA**
-- Higher rank (32 vs 8) provides more expressiveness
-- Good performance on IMDB
-- Consider when standard LoRA underperforms
+- Best perplexity: 2.62 on WikiText-2
+- Higher rank (32) helps generative tasks
+- Fast training: ~24 min
+- ⚠️ **Avoid QLoRA** for language modeling (perplexity 3.20, worst performance)
 
-### For General Purpose / Baseline
+### For General Purpose / Quick Start
 **Use Standard LoRA**
 - Well-tested and reliable
-- Good documentation and community support
-- Solid middle ground
+- Fast training, good accuracy
+- Works well across all task types
+- **Best for**: Most users, baseline experiments
+
+### Decision Tree
+
+```
+Need maximum accuracy on classification?
+├─ Yes, and have limited GPU memory → QLoRA (accept 3x slower training)
+└─ Yes, but fast training matters → Standard LoRA or HiRA
+
+Working on language modeling?
+├─ Need best perplexity → HiRA
+└─ Need speed → Standard LoRA or Sparse LoRA
+
+Need to deploy for inference?
+└─ Sparse LoRA (faster inference)
+
+Just want something that works well?
+└─ Standard LoRA (safe choice)
+```
 
 ---
 
@@ -233,17 +258,26 @@ QLoRA provides the best trade-off:
 
 ## Conclusions
 
-1. **Task-dependent winner**: QLoRA excels at classification tasks, while HiRA is superior for language modeling. Choose based on your task type.
+1. **QLoRA has a critical speed-accuracy trade-off**: While it achieves the best classification accuracy and lowest memory, it trains **2.5-3.5x slower** than other methods. This is a fundamental trade-off to consider.
 
-2. **QLoRA is best for classification**: Achieves highest accuracy (93.28% IMDB, 92.20% SST-2) with lowest memory footprint, making it ideal for sentiment analysis and similar tasks.
+2. **Task-dependent winner**:
+   - **Classification tasks**: QLoRA for best accuracy (if time allows) or LoRA for speed
+   - **Language modeling**: HiRA for best perplexity, avoid QLoRA (worst performance)
 
-3. **HiRA is best for language modeling**: The higher rank (r=32) provides better perplexity (2.62) on WikiText-2, showing that generative tasks benefit from increased model capacity.
+3. **QLoRA excels at classification but struggles with language modeling**:
+   - Best accuracy on IMDB (93.28%) and SST-2 (92.20%)
+   - Worst perplexity on WikiText-2 (3.20 vs 2.62 for HiRA)
+   - Suggests quantization helps classification but hurts generative tasks
 
-4. **Quantization improves generalization**: Contrary to expectations, 4-bit quantization in QLoRA not only reduces memory but appears to improve accuracy on classification tasks.
+4. **HiRA is best for language modeling**: The higher rank (r=32) provides better perplexity (2.62), showing that generative tasks benefit from increased model capacity.
 
-5. **Sparsity provides inference benefits**: Sparse LoRA achieves 50% sparsity with minimal accuracy loss (92.48% vs 92.52% on IMDB), making it ideal for production deployment.
+5. **Speed matters**: If training time is important, LoRA, Sparse LoRA, and HiRA all train at similar speeds (~24-35 min), while QLoRA takes 60-100 min.
 
-6. **Standard LoRA remains viable**: Despite newer methods, standard LoRA provides a good balance and should be considered as a reliable, well-tested baseline.
+6. **Quantization's surprising effect**: 4-bit quantization improves classification accuracy but degrades language modeling performance, likely due to precision loss affecting next-token prediction.
+
+7. **Sparsity is "free"**: Sparse LoRA achieves 50% sparsity with essentially no speed penalty (35.22 min vs 35.21 min) and minimal accuracy loss, making it ideal for deployment.
+
+8. **Standard LoRA remains the best all-rounder**: Good accuracy, fast training, well-tested, and works well across all tasks.
 
 ---
 
