@@ -44,44 +44,30 @@ class QLoRAModel:
             lora_config: LoRA configuration dictionary
             quantization_config: Quantization configuration dictionary
         """
-        # Use BERT-base for QLoRA as DistilBERT doesn't support 4-bit quantization well
-        if model_name == "distilbert-base-uncased":
-            print("Note: Switching from DistilBERT to BERT-base for QLoRA compatibility")
-            model_name = "bert-base-uncased"
+        # Note: All models now use BERT-base for fair comparison
+        # DistilBERT is incompatible with 4-bit quantization (bitsandbytes library limitation)
 
         self.model_name = model_name
         self.task_type = task_type
         self.num_labels = num_labels
         self.model = None
 
-        # Handle LoRA config - update target modules if switching from DistilBERT to BERT
+        # Handle LoRA config
         if lora_config:
             self.lora_config = lora_config.copy()
-            # Update target modules for BERT if they're set for DistilBERT
-            if "bert-base" in model_name and "q_lin" in self.lora_config.get("target_modules", []):
-                print("Note: Updating target modules from DistilBERT to BERT format")
-                self.lora_config["target_modules"] = ["query", "key", "value"]
         else:
             self.lora_config = self._default_lora_config()
 
         self.quantization_config = quantization_config or self._default_quantization_config()
 
     def _default_lora_config(self) -> Dict[str, Any]:
-        """Default LoRA configuration."""
-        # BERT uses different attention layer names than DistilBERT
+        """Default LoRA configuration for BERT-base."""
         # BERT: bert.encoder.layer.*.attention.self.{query,key,value}
-        # DistilBERT: distilbert.transformer.layer.*.attention.{q_lin,k_lin,v_lin}
-        if "bert-base" in self.model_name:
-            # For BERT, we can target all linear layers in self-attention
-            target_modules = ["query", "key", "value"]  # Will match all layers
-        else:
-            target_modules = ["q_lin", "v_lin"]
-
         return {
             "r": 8,
             "lora_alpha": 16,
             "lora_dropout": 0.1,
-            "target_modules": target_modules,
+            "target_modules": ["query", "value"],  # BERT attention layer names
             "bias": "none",
         }
 

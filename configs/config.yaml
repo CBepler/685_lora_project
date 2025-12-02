@@ -3,7 +3,7 @@
 
 # Model Configuration
 model:
-  name: "distilbert-base-uncased"  # Base model for all experiments
+  name: "bert-base-uncased"  # Base model for all experiments (changed from distilbert for fair comparison)
   cache_dir: "~/.cache/huggingface"
 
 # Dataset Configuration
@@ -52,9 +52,9 @@ lora:
   r: 8  # Rank of low-rank matrices
   lora_alpha: 16  # Scaling factor
   lora_dropout: 0.1
-  target_modules:  # Modules to apply LoRA to
-    - "q_lin"
-    - "v_lin"
+  target_modules:  # Modules to apply LoRA to (BERT layer names)
+    - "query"
+    - "value"
   bias: "none"
   task_type: "SEQ_CLS"  # or "CAUSAL_LM" for generation
   inference_mode: false
@@ -64,9 +64,9 @@ sparse_lora:
   r: 8
   lora_alpha: 16
   lora_dropout: 0.1
-  target_modules:
-    - "q_lin"
-    - "v_lin"
+  target_modules:  # BERT layer names
+    - "query"
+    - "value"
   bias: "none"
   task_type: "SEQ_CLS"
 
@@ -82,9 +82,9 @@ qlora:
   r: 8
   lora_alpha: 16
   lora_dropout: 0.1
-  target_modules:
-    - "q_lin"
-    - "v_lin"
+  target_modules:  # BERT layer names
+    - "query"
+    - "value"
   bias: "none"
   task_type: "SEQ_CLS"
 
@@ -100,9 +100,9 @@ hira:
   r: 32  # Higher rank than standard LoRA
   lora_alpha: 64
   lora_dropout: 0.1
-  target_modules:
-    - "q_lin"
-    - "v_lin"
+  target_modules:  # BERT layer names
+    - "query"
+    - "value"
   bias: "none"
   task_type: "SEQ_CLS"
 
