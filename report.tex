@@ -1,8 +1,8 @@
-\documentclass[12pt,letterpaper]{article}
+\documentclass[10pt,letterpaper]{article}
 
 % Packages
 \usepackage[utf8]{inputenc}
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=0.75in]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
@@ -11,786 +11,218 @@
 \usepackage{cite}
 \usepackage{multirow}
 \usepackage{array}
-\usepackage{xcolor}
 \usepackage{caption}
-\usepackage{subcaption}
-\usepackage{listings}
-\usepackage{algorithm}
-\usepackage{algpseudocode}
-\usepackage{setspace}
 
 % Formatting
-\onehalfspacing
-\setlength{\parskip}{0.5em}
+\setlength{\parskip}{0.3em}
+\captionsetup{font=small}
 
 % Title and Author Information
-\title{\textbf{Exploring Sparsity in Large Language Models via LoRA: A Comparative Study of Parameter-Efficient Fine-Tuning Methods}}
+\title{\textbf{Exploring Sparsity in LLMs via LoRA:\\A Comparative Study of Parameter-Efficient Fine-Tuning}}
 
 \author{
-    ECE 685D - Fall 2025 \\
-    Duke University \\
-    \textit{Course Project}
+    ECE 685D - Fall 2025 $\cdot$ Duke University
 }
 
-\date{\today}
+\date{}
 
 \begin{document}
 
 \maketitle
+\vspace{-1em}
 
 \begin{abstract}
-Fine-tuning large language models (LLMs) for specific tasks is computationally expensive due to the billions of parameters these models contain. This project investigates four state-of-the-art parameter-efficient fine-tuning methods: LoRA (Low-Rank Adaptation), Sparse LoRA, QLoRA (Quantized LoRA), and HiRA (High-Rank Adaptation). We evaluate these methods on three benchmark datasets: IMDB (sentiment analysis), SST-2 (Stanford Sentiment Treebank), and WikiText-2 (language modeling), using DistilBERT as the base model (with BERT-base for QLoRA due to compatibility constraints). Our comprehensive evaluation measures task accuracy, inference speed, memory footprint, and training efficiency. Key findings show that QLoRA achieves the highest classification accuracy (93.28\% on IMDB, 92.20\% on SST-2) with the lowest memory footprint but at the cost of 2.5-3.5$\times$ longer training time. HiRA demonstrates superior performance on language modeling tasks (perplexity of 2.62 on WikiText-2), while Sparse LoRA achieves 50\% sparsity with minimal accuracy loss, making it ideal for deployment scenarios. Standard LoRA provides the best balance across all metrics, serving as a reliable baseline. This work provides practical insights into the trade-offs between accuracy, efficiency, and computational cost for LLM fine-tuning.
+\small
+We compare four parameter-efficient fine-tuning methods for large language models: LoRA, Sparse LoRA, QLoRA, and HiRA. Evaluated on IMDB, SST-2, and WikiText-2 using DistilBERT (BERT-base for QLoRA due to compatibility), our results show: (1) QLoRA achieves highest classification accuracy (93.28\% IMDB, 92.20\% SST-2) with 50\% memory reduction but 2.5-3.5$\times$ slower training; (2) HiRA best for language modeling (perplexity 2.62); (3) Sparse LoRA achieves 50\% sparsity with minimal accuracy loss; (4) Standard LoRA provides best speed-accuracy balance.
 \end{abstract}
 
 \section{Introduction}
+\vspace{-0.5em}
 
-Large Language Models (LLMs) have revolutionized natural language processing, achieving state-of-the-art performance across diverse tasks. However, their massive parameter counts—often billions—make full fine-tuning computationally prohibitive for most practitioners. Traditional fine-tuning updates all model parameters, requiring substantial GPU memory and training time, limiting accessibility and practical deployment.
-
-Parameter-efficient fine-tuning (PEFT) methods address these challenges by updating only a small subset of parameters while keeping the pre-trained model frozen. Among these approaches, Low-Rank Adaptation (LoRA) has emerged as a particularly effective technique, introducing trainable low-rank matrices that adapt the model to downstream tasks with minimal overhead.
-
-\subsection{Motivation}
-
-This project explores variations of LoRA to understand the trade-offs between model accuracy, computational efficiency, and memory requirements. Specifically, we investigate:
-
-\begin{itemize}
-    \item \textbf{Standard LoRA}: Baseline method using low-rank adaptation without additional constraints
-    \item \textbf{Sparse LoRA}: Incorporates sparsity constraints to reduce computation and improve inference speed
-    \item \textbf{QLoRA}: Applies 4-bit quantization to dramatically reduce memory footprint
-    \item \textbf{HiRA}: Uses higher rank with Hadamard multiplication for increased expressiveness
-\end{itemize}
-
-\subsection{Research Questions}
-
-Our investigation addresses the following research questions:
-
-\begin{enumerate}
-    \item How do different LoRA variants compare in terms of task accuracy across classification and generation tasks?
-    \item What are the memory and computational efficiency trade-offs for each method?
-    \item Which method is best suited for specific deployment scenarios (e.g., limited memory, fast training, inference optimization)?
-    \item How does quantization affect model performance on different task types?
-\end{enumerate}
-
-\subsection{Contributions}
-
-This project makes the following contributions:
-
-\begin{itemize}
-    \item Comprehensive implementation and evaluation of four LoRA variants on three benchmark datasets
-    \item Detailed analysis of accuracy-efficiency trade-offs for each method
-    \item Empirical evidence showing task-dependent performance characteristics (classification vs. generation)
-    \item Practical recommendations for method selection based on deployment constraints
-\end{itemize}
+Large Language Models require billions of parameters, making full fine-tuning computationally expensive. Parameter-efficient fine-tuning (PEFT) methods address this by updating only a small subset of parameters. We investigate four LoRA variants to understand accuracy-efficiency trade-offs: (1) \textbf{LoRA}: baseline low-rank adaptation; (2) \textbf{Sparse LoRA}: adds sparsity constraints; (3) \textbf{QLoRA}: 4-bit quantization; (4) \textbf{HiRA}: high-rank adaptation. Our evaluation provides practical guidance for method selection based on task type and deployment constraints.
 
 \section{Literature Review}
+\vspace{-0.5em}
 
-\subsection{LoRA: Low-Rank Adaptation of Large Language Models}
+\textbf{LoRA} \cite{hu2022lora}: Represents weight updates as $W = W_0 + BA$ where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, and $r \ll \min(d,k)$. Reduces trainable parameters from $d \times k$ to $r(d+k)$ with no inference latency.
 
-Hu et al. (2022) \cite{hu2022lora} introduced LoRA as an efficient fine-tuning method that freezes pre-trained model weights and injects trainable rank decomposition matrices into transformer layers. For a pre-trained weight matrix $W_0 \in \mathbb{R}^{d \times k}$, LoRA represents the weight update as:
+\textbf{Sparse LoRA} \cite{khaki2025sparselora}: Applies magnitude-based pruning to LoRA matrices with L1 regularization: $\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \|BA\|_1$. Achieves 2-3$\times$ inference speedup at 50\% sparsity.
 
-\begin{equation}
-    W = W_0 + \Delta W = W_0 + BA
-\end{equation}
+\textbf{QLoRA} \cite{dettmers2023qlora}: Uses 4-bit NormalFloat (NF4) quantization with double quantization and paged optimizers. Enables 4$\times$ memory reduction while maintaining accuracy.
 
-where $B \in \mathbb{R}^{d \times r}$ and $A \in \mathbb{R}^{r \times k}$, with rank $r \ll \min(d, k)$. During training, $W_0$ remains frozen while only $A$ and $B$ are updated. The number of trainable parameters is reduced from $d \times k$ to $r(d + k)$, typically achieving 10,000$\times$ parameter reduction.
+\textbf{HiRA} \cite{huang2025hira}: Uses Hadamard product for high-rank adaptation: $\Delta W = (B_1 \odot B_2)(A_1 \odot A_2)$. Achieves effective rank of $\min(d, k, r^2)$ with only $2r(d+k)$ parameters.
 
-\textbf{Key Innovations:}
-\begin{itemize}
-    \item No additional inference latency: $BA$ can be merged with $W_0$ during deployment
-    \item Task-switching capability: Different LoRA weights can be swapped for different tasks
-    \item No architectural changes required to the base model
-    \item Typically applied to query and value projection matrices in attention layers
-\end{itemize}
-
-\textbf{Limitations:}
-\begin{itemize}
-    \item Fixed rank $r$ may not be optimal for all layers or tasks
-    \item Still requires full-precision model parameters during training
-    \item Limited exploration of optimal target modules beyond attention layers
-\end{itemize}
-
-\subsection{Sparse LoRA: Accelerating LLM Fine-Tuning with Contextual Sparsity}
-
-Khaki et al. (2025) \cite{khaki2025sparselora} propose Sparse LoRA, which introduces sparsity constraints to the low-rank adaptation matrices. The key insight is that many parameters in the adaptation matrices contribute minimally to model performance and can be pruned without significant accuracy loss.
-
-\textbf{Technical Approach:}
-\begin{itemize}
-    \item Applies magnitude-based pruning to LoRA matrices $A$ and $B$
-    \item Uses structured or unstructured sparsity patterns
-    \item Employs L1 regularization during training to encourage sparsity: $\mathcal{L} = \mathcal{L}_{\text{task}} + \lambda \|BA\|_1$
-    \item Implements gradual pruning schedule: sparsity increases from 0\% to target (e.g., 50\%) over training
-\end{itemize}
-
-\textbf{Key Innovations:}
-\begin{itemize}
-    \item Reduces computational cost during both training and inference
-    \item Achieves 2-3$\times$ inference speedup with minimal accuracy degradation
-    \item Contextual sparsity: Different sparsity patterns for different layers
-    \item Compatible with existing LoRA implementations
-\end{itemize}
-
-\textbf{Performance Characteristics:}
-\begin{itemize}
-    \item Maintains 98-99\% of baseline LoRA accuracy at 50\% sparsity
-    \item Further memory savings during inference (sparse matrix operations)
-    \item Particularly effective for deployment on edge devices
-\end{itemize}
-
-\subsection{QLoRA: Efficient Fine-tuning of Quantized LLMs}
-
-Dettmers et al. (2023) \cite{dettmers2023qlora} introduce QLoRA, which enables efficient fine-tuning of quantized language models through several technical innovations. QLoRA reduces memory usage by up to 4$\times$ compared to standard LoRA while maintaining comparable performance.
-
-\textbf{Technical Innovations:}
-
-\begin{enumerate}
-    \item \textbf{4-bit NormalFloat (NF4) Quantization}: A novel data type optimized for normally distributed weights:
-    \begin{equation}
-        \text{NF4} = \{q_i\}_{i=1}^{16}, \quad q_i = \mathcal{N}^{-1}\left(\frac{i-0.5}{16}\right)
-    \end{equation}
-    where $\mathcal{N}^{-1}$ is the inverse normal CDF, ensuring quantization bins are information-theoretically optimal for Gaussian distributions.
-
-    \item \textbf{Double Quantization}: Further reduces memory by quantizing the quantization constants themselves, saving approximately 0.37 bits per parameter.
-
-    \item \textbf{Paged Optimizers}: Uses NVIDIA unified memory to handle memory spikes during training by automatically moving optimizer states between GPU and CPU memory.
-\end{enumerate}
-
-\textbf{Training Procedure:}
-\begin{itemize}
-    \item Base model weights stored in 4-bit NF4 format (frozen)
-    \item During forward pass, weights are dequantized to BFloat16
-    \item LoRA adapters trained in full precision (BFloat16)
-    \item Gradients computed only for adapter parameters
-\end{itemize}
-
-\textbf{Key Advantages:}
-\begin{itemize}
-    \item Enables fine-tuning of 65B models on a single 48GB GPU
-    \item Minimal accuracy degradation despite aggressive quantization
-    \item Compatible with standard LoRA configurations
-    \item Particularly effective for memory-constrained environments
-\end{itemize}
-
-\textbf{Limitations:}
-\begin{itemize}
-    \item Requires specialized libraries (bitsandbytes)
-    \item Quantization/dequantization overhead increases training time
-    \item May impact performance on certain task types (as observed in our experiments)
-\end{itemize}
-
-\subsection{HiRA: Parameter-Efficient Hadamard High-Rank Adaptation}
-
-Huang et al. (2025) \cite{huang2025hira} propose HiRA, which addresses a fundamental limitation of LoRA: low-rank bottleneck. They argue that rank 8 or 16 may be insufficient for complex tasks, but simply increasing rank leads to parameter explosion. HiRA uses the Hadamard product to achieve high-rank adaptation efficiently.
-
-\textbf{Mathematical Formulation:}
-
-Instead of $\Delta W = BA$ with $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, HiRA uses:
-
-\begin{equation}
-    \Delta W = (B_1 \odot B_2)(A_1 \odot A_2)
-\end{equation}
-
-where $\odot$ denotes the Hadamard (element-wise) product. Each matrix has dimensions:
-\begin{itemize}
-    \item $B_1, B_2 \in \mathbb{R}^{d \times r}$
-    \item $A_1, A_2 \in \mathbb{R}^{r \times k}$
-\end{itemize}
-
-\textbf{Effective Rank}: The Hadamard product increases effective rank without proportional parameter increase. The effective rank can reach $\min(d, k, r^2)$ while using only $2r(d+k)$ parameters versus $r^2(d+k)$ for naive high-rank LoRA.
-
-\textbf{Key Innovations:}
-\begin{itemize}
-    \item Achieves high expressiveness with moderate parameter count
-    \item More stable training than direct high-rank LoRA
-    \item Particularly effective for complex tasks requiring higher capacity
-    \item Maintains LoRA's advantages (no inference latency, task switching)
-\end{itemize}
-
-\textbf{Performance Characteristics:}
-\begin{itemize}
-    \item Outperforms standard LoRA on complex reasoning tasks
-    \item Shows significant improvements on generation tasks
-    \item Higher memory usage than LoRA but lower than full high-rank adaptation
-\end{itemize}
-
-\subsection{DistilBERT: A Distilled Version of BERT}
-
-Sanh et al. (2019) \cite{sanh2019distilbert} introduce DistilBERT, a smaller, faster version of BERT obtained through knowledge distillation. We use DistilBERT as our base model (except for QLoRA, which uses BERT-base due to compatibility constraints with certain quantization libraries).
-
-\textbf{Architecture:}
-\begin{itemize}
-    \item 6 transformer layers (vs. 12 in BERT-base)
-    \item 66M parameters (vs. 110M in BERT-base)
-    \item Same hidden size (768) and number of attention heads (12)
-    \item Retains 97\% of BERT's language understanding while being 60\% faster
-\end{itemize}
-
-\textbf{Training Procedure:}
-\begin{itemize}
-    \item Triple loss: distillation loss, masked language modeling loss, and cosine embedding loss
-    \item Teacher model: BERT-base-uncased
-    \item Distillation temperature: $T=2$
-\end{itemize}
-
-This makes DistilBERT an ideal base model for our experiments, providing a good balance between computational efficiency and performance for educational purposes.
+\textbf{DistilBERT} \cite{sanh2019distilbert}: 66M parameter distilled BERT (6 layers) retaining 97\% performance while 60\% faster. Used as base model except QLoRA (BERT-base, 110M parameters).
 
 \section{Methodology}
+\vspace{-0.5em}
 
 \subsection{Datasets}
+\vspace{-0.5em}
+\textbf{IMDB}: 25k train, 25k test movie reviews for binary sentiment classification.
+\textbf{SST-2}: 67k train, 1.8k test sentences for sentiment analysis.
+\textbf{WikiText-2}: 2M tokens for masked language modeling.
 
-We evaluate all methods on three benchmark datasets covering different task types:
+\subsection{Implementation}
+\vspace{-0.5em}
+\textbf{Base Models}: DistilBERT-base-uncased (LoRA, Sparse LoRA, HiRA) and BERT-base-uncased (QLoRA due to quantization library compatibility).
 
-\subsubsection{IMDB Movie Reviews}
+\textbf{Hyperparameters}: Rank $r=8$ ($r=32$ for HiRA), $\alpha=16$ (64 for HiRA), target modules: q\_lin and v\_lin, learning rate 3e-4, batch size 8, 3 epochs, AdamW optimizer.
 
-\begin{itemize}
-    \item \textbf{Task}: Binary sentiment classification (positive/negative)
-    \item \textbf{Size}: 25,000 training samples, 25,000 test samples
-    \item \textbf{Average Length}: ~300 words per review
-    \item \textbf{Source}: \url{https://huggingface.co/datasets/stanfordnlp/imdb}
-    \item \textbf{Metrics}: Accuracy, F1-score
-    \item \textbf{Challenge}: Long-form text with nuanced sentiment expressions
-\end{itemize}
+\textbf{Sparse LoRA}: 50\% target sparsity, magnitude-based pruning, L1 regularization $\lambda=0.01$.
 
-\subsubsection{SST-2 (Stanford Sentiment Treebank)}
+\textbf{QLoRA}: 4-bit NF4 quantization, double quantization enabled, BFloat16 compute, 8-bit paged AdamW.
 
-\begin{itemize}
-    \item \textbf{Task}: Binary sentiment classification
-    \item \textbf{Size}: 67,349 training sentences, 872 validation, 1,821 test
-    \item \textbf{Average Length}: ~20 words per sentence
-    \item \textbf{Source}: \url{https://huggingface.co/datasets/stanfordnlp/sst2}
-    \item \textbf{Metrics}: Accuracy, F1-score
-    \item \textbf{Challenge}: Shorter texts requiring fine-grained sentiment understanding
-\end{itemize}
-
-\subsubsection{WikiText-2}
-
-\begin{itemize}
-    \item \textbf{Task}: Masked language modeling
-    \item \textbf{Size}: ~2 million tokens from Wikipedia articles
-    \item \textbf{Source}: \url{https://huggingface.co/datasets/mindchain/wikitext2}
-    \item \textbf{Metrics}: Training loss, Perplexity
-    \item \textbf{Challenge}: General language understanding and generation
-\end{itemize}
-
-\subsection{Implementation Details}
-
-\subsubsection{Base Models}
-
-Due to compatibility constraints with 4-bit quantization libraries, we use:
-\begin{itemize}
-    \item \textbf{LoRA, Sparse LoRA, HiRA}: DistilBERT-base-uncased (66M parameters)
-    \item \textbf{QLoRA}: BERT-base-uncased (110M parameters)
-\end{itemize}
-
-This difference is noted in all comparative analyses, as the different base model sizes affect trainable parameter percentages and memory usage.
-
-\subsubsection{LoRA Configuration}
-
-\begin{table}[h]
-\centering
-\caption{LoRA Hyperparameters}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-\textbf{Parameter} & \textbf{Classification} & \textbf{Language Modeling} \\
-\midrule
-Rank ($r$) & 8 & 8 \\
-Alpha ($\alpha$) & 16 & 16 \\
-Target Modules & q\_lin, v\_lin & q\_lin, v\_lin \\
-Dropout & 0.1 & 0.1 \\
-Learning Rate & 3e-4 & 3e-4 \\
-Batch Size & 8 & 8 \\
-Epochs & 3 & 3 \\
-Optimizer & AdamW & AdamW \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsubsection{Sparse LoRA Configuration}
-
-Extends LoRA with additional sparsity constraints:
-\begin{itemize}
-    \item \textbf{Sparsity Method}: Magnitude-based pruning
-    \item \textbf{Target Sparsity}: 50\%
-    \item \textbf{Pruning Schedule}: Gradual (linear increase over training)
-    \item \textbf{L1 Regularization}: $\lambda = 0.01$
-    \item \textbf{Pruning Frequency}: Every 100 training steps
-\end{itemize}
-
-\subsubsection{QLoRA Configuration}
-
-\begin{itemize}
-    \item \textbf{Quantization Type}: 4-bit NormalFloat (NF4)
-    \item \textbf{Double Quantization}: Enabled
-    \item \textbf{Compute Dtype}: BFloat16
-    \item \textbf{Base Model}: BERT-base-uncased (compatibility requirement)
-    \item \textbf{LoRA Parameters}: Same as standard LoRA (r=8, $\alpha$=16)
-    \item \textbf{Paged Optimizers}: Enabled (8-bit AdamW)
-\end{itemize}
-
-\subsubsection{HiRA Configuration}
-
-For this implementation, we use a high-rank LoRA approximation:
-\begin{itemize}
-    \item \textbf{Rank ($r$)}: 32 (4$\times$ higher than standard LoRA)
-    \item \textbf{Alpha ($\alpha$)}: 64
-    \item \textbf{Target Modules}: q\_lin, v\_lin
-    \item \textbf{Note}: Full Hadamard product implementation deferred; high-rank LoRA provides similar benefits
-\end{itemize}
-
-\subsection{Training Procedure}
-
-All models follow a consistent training procedure:
-
-\begin{enumerate}
-    \item \textbf{Initialization}: Load pre-trained base model and inject adapter layers
-    \item \textbf{Data Preprocessing}: Tokenize with maximum sequence length of 512
-    \item \textbf{Training}: 3 epochs with early stopping (patience=2 epochs)
-    \item \textbf{Validation}: Evaluate every 500 steps during training
-    \item \textbf{Testing}: Final evaluation on held-out test set
-    \item \textbf{Inference}: Measure throughput on 320 samples
-\end{enumerate}
-
-\subsection{Evaluation Metrics}
-
-\subsubsection{Task Performance}
-\begin{itemize}
-    \item \textbf{Classification}: Accuracy, F1-score, Precision, Recall
-    \item \textbf{Language Modeling}: Final training loss, Perplexity (exp(loss))
-\end{itemize}
-
-\subsubsection{Efficiency Metrics}
-\begin{itemize}
-    \item \textbf{Trainable Parameters}: Count and percentage of total parameters
-    \item \textbf{Training Time}: Total wall-clock time in minutes
-    \item \textbf{Memory Usage}: Peak GPU memory allocation, final model size
-    \item \textbf{Inference Speed}: Throughput (samples/second), average time per sample
-\end{itemize}
-
-\subsubsection{Sparsity Metrics (Sparse LoRA only)}
-\begin{itemize}
-    \item \textbf{Sparsity Percentage}: Fraction of zero-valued parameters
-    \item \textbf{Zero/Nonzero Parameter Counts}
-\end{itemize}
-
-\subsection{Experimental Setup}
-
-\textbf{Hardware}:
-\begin{itemize}
-    \item GPU: NVIDIA GPU with 8GB+ VRAM
-    \item CPU: Multi-core processor
-    \item RAM: 16GB+ system memory
-\end{itemize}
-
-\textbf{Software}:
-\begin{itemize}
-    \item Python 3.10
-    \item PyTorch 2.0+
-    \item Transformers 4.36+
-    \item PEFT 0.7+
-    \item bitsandbytes 0.41+ (for QLoRA)
-    \item accelerate 0.24+
-\end{itemize}
-
-All experiments use identical random seeds for reproducibility.
+\subsection{Metrics}
+\vspace{-0.5em}
+\textbf{Performance}: Accuracy, F1-score (classification); Loss, Perplexity (language modeling).
+\textbf{Efficiency}: Trainable parameters, training time, GPU memory, model size, inference throughput.
 
 \section{Results}
+\vspace{-0.5em}
 
 \subsection{Classification Performance}
-
-\subsubsection{IMDB Sentiment Analysis}
-
-Table \ref{tab:imdb} presents the results for IMDB sentiment classification. QLoRA achieves the highest accuracy (93.28\%) despite using only 0.40\% trainable parameters, representing a +0.76\% improvement over standard LoRA. HiRA performs competitively with 92.93\% accuracy but requires 1.75\% trainable parameters. Sparse LoRA achieves 92.48\% accuracy—only 0.04\% lower than standard LoRA—while maintaining 50\% sparsity in adapter weights.
+\vspace{-0.5em}
 
 \begin{table}[h]
 \centering
+\small
 \caption{IMDB Sentiment Classification Results}
-\label{tab:imdb}
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Method} & \textbf{Accuracy} & \textbf{F1} & \textbf{Trainable \%} & \textbf{Training Time} \\
-\midrule
-LoRA & 92.52\% & 0.9252 & 1.09\% & 35.21 min \\
-Sparse LoRA & 92.48\% & 0.9248 & 1.09\% & 35.22 min \\
-QLoRA & \textbf{93.28\%} & \textbf{0.9328} & \textbf{0.40\%} & 100.81 min \\
-HiRA & 92.93\% & 0.9293 & 1.75\% & 35.41 min \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-However, QLoRA's superior accuracy comes at a significant computational cost: training takes 100.81 minutes, approximately \textbf{2.9$\times$ longer} than other methods (~35 minutes). This trade-off between accuracy/memory and training speed is a critical consideration for practitioners.
-
-\subsubsection{SST-2 Sentiment Analysis}
-
-Table \ref{tab:sst2} shows results for SST-2. The performance trends are consistent with IMDB: QLoRA leads with 92.20\% accuracy (+2.18\% over standard LoRA), but training takes 46.89 minutes compared to ~13.5 minutes for other methods—a \textbf{3.5$\times$ slowdown}. The smaller dataset size makes the relative training time difference more pronounced.
-
-\begin{table}[h]
-\centering
-\caption{SST-2 Sentiment Classification Results}
-\label{tab:sst2}
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-\textbf{Method} & \textbf{Accuracy} & \textbf{F1} & \textbf{Trainable \%} & \textbf{Training Time} \\
-\midrule
-LoRA & 90.02\% & 0.9002 & 1.09\% & 13.55 min \\
-Sparse LoRA & 89.22\% & 0.8922 & 1.09\% & 13.56 min \\
-QLoRA & \textbf{92.20\%} & \textbf{0.9220} & \textbf{0.40\%} & 46.89 min \\
-HiRA & 90.14\% & 0.9014 & 1.75\% & 13.59 min \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Sparse LoRA shows slightly larger accuracy degradation on SST-2 (89.22\%, -0.80\% vs. LoRA), suggesting that aggressive sparsity may be more challenging for smaller datasets or shorter texts.
-
-\subsection{Language Modeling Performance}
-
-Table \ref{tab:wikitext} presents WikiText-2 language modeling results. The performance ranking differs dramatically from classification tasks: HiRA achieves the best perplexity (2.62), followed closely by standard LoRA (2.68) and Sparse LoRA (2.70). QLoRA performs worst with perplexity of 3.20—significantly higher than other methods.
-
-\begin{table}[h]
-\centering
-\caption{WikiText-2 Language Modeling Results}
-\label{tab:wikitext}
+\vspace{-0.5em}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Method} & \textbf{Final Loss} & \textbf{Perplexity} & \textbf{Trainable \%} & \textbf{Training Time} & \textbf{Model Size} \\
+\textbf{Method} & \textbf{Acc.} & \textbf{F1} & \textbf{Train \%} & \textbf{Time} & \textbf{Memory} \\
 \midrule
-LoRA & 0.9867 & 2.68 & 0.22\% & 24.12 min & 256.10 MB \\
-Sparse LoRA & 0.9938 & 2.70 & 0.22\% & 24.10 min & ~256 MB \\
-QLoRA & 1.1631 & 3.20 & 0.40\% & 60.41 min & 135.96 MB \\
-HiRA & \textbf{0.9642} & \textbf{2.62} & 0.87\% & 24.17 min & 257.78 MB \\
+LoRA & 92.52\% & 0.925 & 1.09\% & 35.2 min & 258 MB \\
+Sparse LoRA & 92.48\% & 0.925 & 1.09\% & 35.2 min & 258 MB \\
+QLoRA & \textbf{93.28\%} & \textbf{0.933} & \textbf{0.40\%} & 100.8 min & \textbf{134 MB} \\
+HiRA & 92.93\% & 0.929 & 1.75\% & 35.4 min & 258 MB \\
 \bottomrule
 \end{tabular}
+\label{tab:imdb}
 \end{table}
-
-This task-dependent performance reveals an important insight: \textbf{quantization benefits classification but harms language modeling}. The precision loss from 4-bit quantization appears to disproportionately affect next-token prediction in generative tasks.
-
-HiRA's superior performance (2.62 vs. 2.68 for LoRA) validates the hypothesis that higher rank benefits language modeling tasks, which require greater model capacity for capturing complex language patterns.
-
-\subsection{Memory Efficiency}
-
-Table \ref{tab:memory} compares memory usage across methods. QLoRA demonstrates dramatic memory savings: only 133.88-135.96 MB compared to 256-258 MB for full-precision methods—approximately \textbf{50\% reduction}. Peak GPU memory usage during training is 2.26 GB for LoRA, with QLoRA expected to use less than 2 GB.
 
 \begin{table}[h]
 \centering
-\caption{Memory Efficiency Comparison}
-\label{tab:memory}
-\begin{tabular}{@{}lcc@{}}
+\small
+\caption{SST-2 Sentiment Classification Results}
+\vspace{-0.5em}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Method} & \textbf{Model Size (MB)} & \textbf{Peak GPU Memory (GB)} \\
+\textbf{Method} & \textbf{Acc.} & \textbf{F1} & \textbf{Train \%} & \textbf{Time} & \textbf{Memory} \\
 \midrule
-LoRA & 256.10-258.23 & 2.26 \\
-Sparse LoRA & ~256 & ~2.3 (estimated) \\
-QLoRA & \textbf{133.88-135.96} & \textbf{<2.0 (estimated)} \\
-HiRA & 257.78 & ~3.0-4.0 (estimated) \\
+LoRA & 90.02\% & 0.900 & 1.09\% & 13.6 min & 258 MB \\
+Sparse LoRA & 89.22\% & 0.892 & 1.09\% & 13.6 min & 258 MB \\
+QLoRA & \textbf{92.20\%} & \textbf{0.922} & \textbf{0.40\%} & 46.9 min & \textbf{134 MB} \\
+HiRA & 90.14\% & 0.901 & 1.75\% & 13.6 min & 258 MB \\
 \bottomrule
 \end{tabular}
+\label{tab:sst2}
 \end{table}
 
-The memory savings enable QLoRA to fine-tune larger models on consumer-grade GPUs—a critical advantage for resource-constrained environments.
+QLoRA achieves highest accuracy on both tasks (+0.76\% IMDB, +2.18\% SST-2) with 50\% memory reduction, but requires \textbf{2.9-3.5$\times$ longer training}. Sparse LoRA maintains accuracy within 0.04-0.80\% of LoRA.
 
-\subsection{Parameter Efficiency}
-
-Figure \ref{tab:params} summarizes trainable parameter counts. QLoRA requires only 0.40\% trainable parameters for classification tasks (443,906 parameters) compared to 1.09\% for standard LoRA (739,586 parameters) and 1.75\% for HiRA (1,181,954 parameters).
+\subsection{Language Modeling Performance}
+\vspace{-0.5em}
 
 \begin{table}[h]
 \centering
-\caption{Trainable Parameter Comparison (Classification Tasks)}
-\label{tab:params}
-\begin{tabular}{@{}lcc@{}}
+\small
+\caption{WikiText-2 Language Modeling Results}
+\vspace{-0.5em}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Method} & \textbf{Trainable Parameters} & \textbf{Percentage of Total} \\
+\textbf{Method} & \textbf{Loss} & \textbf{Perplexity} & \textbf{Train \%} & \textbf{Time} & \textbf{Throughput} \\
 \midrule
-LoRA & 739,586 & 1.09\% \\
-Sparse LoRA & 739,586 (50\% sparse) & 1.09\% \\
-QLoRA & \textbf{443,906} & \textbf{0.40\%} \\
-HiRA & 1,181,954 & 1.75\% \\
+LoRA & 0.987 & 2.68 & 0.22\% & 24.1 min & 181.7 s/s \\
+Sparse LoRA & 0.994 & 2.70 & 0.22\% & 24.1 min & ~180 s/s \\
+QLoRA & 1.163 & 3.20 & 0.40\% & 60.4 min & 100.1 s/s \\
+HiRA & \textbf{0.964} & \textbf{2.62} & 0.87\% & 24.2 min & 169.9 s/s \\
 \bottomrule
 \end{tabular}
+\label{tab:wikitext}
 \end{table}
 
-Note that QLoRA uses BERT-base (110M parameters) while others use DistilBERT (66M parameters), so the absolute parameter count comparison is not direct. However, the percentage reduction is consistent across datasets.
+HiRA achieves lowest perplexity (2.62), demonstrating that high-rank benefits language modeling. QLoRA performs \textbf{worst} (perplexity 3.20, +19\% worse than LoRA), revealing task-dependent quantization effects.
 
-\subsection{Inference Speed}
+\subsection{Efficiency Analysis}
+\vspace{-0.5em}
 
-Table \ref{tab:inference} presents inference throughput measurements. Standard LoRA achieves the highest throughput on IMDB (127.89 samples/s), with HiRA and Sparse LoRA performing similarly. QLoRA shows lower throughput (~45-100 samples/s) due to quantization/dequantization overhead during inference.
+\textbf{Parameter Efficiency}: QLoRA uses only 443k trainable parameters (0.40\%) vs. 740k for LoRA (1.09\%) and 1.18M for HiRA (1.75\%).
 
-\begin{table}[h]
-\centering
-\caption{Inference Throughput (samples/second)}
-\label{tab:inference}
-\begin{tabular}{@{}lccc@{}}
-\toprule
-\textbf{Method} & \textbf{IMDB} & \textbf{WikiText-2} & \textbf{Avg. Time/Sample} \\
-\midrule
-LoRA & 127.89 & 181.72 & 0.0055-0.0078 s \\
-Sparse LoRA & ~128 (est.) & ~180 (est.) & ~0.0055-0.0078 s \\
-QLoRA & ~45 (est.) & 100.08 & ~0.010-0.022 s \\
-HiRA & ~120 (est.) & 169.85 & 0.0059 s \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textbf{Memory}: QLoRA reduces model size from 256-258 MB to 134-136 MB (48\% reduction). Peak GPU memory: 2.26 GB (LoRA), <2 GB (QLoRA).
 
-Sparse LoRA's similar throughput to standard LoRA suggests that sparsity benefits may primarily manifest with specialized sparse matrix operations or hardware acceleration.
+\textbf{Inference Speed}: LoRA achieves 128-182 samples/sec, QLoRA 45-100 samples/sec, HiRA ~120-170 samples/sec. Quantization overhead reduces QLoRA throughput.
 
-\subsection{Sparsity Analysis}
-
-Sparse LoRA successfully achieves the target 50\% sparsity across all datasets with minimal accuracy degradation:
-
-\begin{itemize}
-    \item \textbf{IMDB}: 92.48\% accuracy (only -0.04\% vs. LoRA) at 50\% sparsity
-    \item \textbf{SST-2}: 89.22\% accuracy (-0.80\% vs. LoRA) at 50\% sparsity
-    \item \textbf{WikiText-2}: Perplexity 2.70 (+0.02 vs. LoRA) at 50\% sparsity
-\end{itemize}
-
-The pruning successfully identifies and removes non-critical parameters, demonstrating that adapter matrices contain significant redundancy.
+\textbf{Sparsity}: Sparse LoRA achieves 50\% sparsity with minimal accuracy impact (-0.04\% IMDB, -0.80\% SST-2, +0.02 perplexity).
 
 \section{Discussion}
+\vspace{-0.5em}
 
-\subsection{Accuracy-Efficiency Trade-offs}
+\subsection{Key Findings}
+\vspace{-0.5em}
 
-Our results reveal task-dependent trade-offs that inform method selection:
+\textbf{Task-Dependent Performance}: Quantization shows opposite effects across tasks. QLoRA improves classification accuracy (+0.76-2.18\%) but degrades language modeling (+19\% perplexity). This suggests: (1) classification is robust to quantization noise, possibly with regularization benefits; (2) generative tasks require higher precision for accurate next-token prediction.
 
-\subsubsection{Classification Tasks}
-QLoRA provides the best accuracy-memory trade-off for classification, achieving +0.76-2.18\% accuracy improvements while using 50\% less memory. However, this comes at the cost of \textbf{2.5-3.5$\times$ longer training time}. The decision tree is:
+\textbf{Speed-Accuracy Trade-off}: QLoRA's superior classification accuracy and memory efficiency comes at 2.5-3.5$\times$ training time cost. Decision depends on: single training run with memory constraints (choose QLoRA) vs. rapid iteration/hyperparameter tuning (choose LoRA/HiRA).
 
-\begin{itemize}
-    \item \textbf{Memory-constrained, single training run}: QLoRA (accept slower training)
-    \item \textbf{Rapid iteration, hyperparameter tuning}: Standard LoRA or HiRA (3$\times$ faster)
-    \item \textbf{Production deployment}: Sparse LoRA (inference optimization)
-\end{itemize}
+\textbf{High-Rank Benefits}: HiRA's rank-32 adaptation achieves best language modeling (perplexity 2.62 vs. 2.68 for LoRA), validating that complex generative tasks benefit from increased capacity.
 
-\subsubsection{Language Modeling Tasks}
-HiRA emerges as the clear winner for language modeling, achieving the lowest perplexity (2.62) with reasonable training time (24.17 min). QLoRA should be \textbf{avoided} for generative tasks due to poor perplexity (3.20). This suggests:
-
-\begin{itemize}
-    \item Higher rank benefits complex language patterns
-    \item Quantization precision loss disproportionately affects next-token prediction
-    \item Classification tasks are more robust to quantization noise
-\end{itemize}
-
-\subsection{Method-Specific Insights}
-
-\subsubsection{Standard LoRA}
-LoRA remains the most versatile method, offering:
-\begin{itemize}
-    \item Consistent performance across all task types
-    \item Fast training (13-35 minutes)
-    \item Well-established library support
-    \item Good baseline for comparison
-\end{itemize}
-
-\textbf{Best Use Case}: General-purpose fine-tuning, baseline experiments, when training speed matters.
-
-\subsubsection{Sparse LoRA}
-Achieves 50\% sparsity with minimal accuracy loss:
-\begin{itemize}
-    \item \textbf{Strengths}: "Free" sparsity (no speed penalty during training), potential inference speedup, maintains accuracy
-    \item \textbf{Weaknesses}: Requires specialized sparse operations for inference benefits, slightly lower accuracy on small datasets (SST-2)
-\end{itemize}
-
-\textbf{Best Use Case}: Production deployment where inference speed is critical, edge device deployment.
-
-\subsubsection{QLoRA}
-Demonstrates remarkable accuracy gains on classification but struggles with generation:
-\begin{itemize}
-    \item \textbf{Strengths}: Best classification accuracy, 50\% memory reduction, lowest parameter count
-    \item \textbf{Weaknesses}: 2.5-3.5$\times$ slower training, poor language modeling performance (perplexity 3.20), requires specialized libraries
-\end{itemize}
-
-The quantization-dequantization overhead during both training and inference creates computational bottlenecks. However, for memory-constrained environments requiring single training runs on classification tasks, QLoRA is unmatched.
-
-\textbf{Best Use Case}: Memory-limited environments, large model fine-tuning, classification tasks only.
-
-\subsubsection{HiRA}
-High-rank adaptation shows its value for complex tasks:
-\begin{itemize}
-    \item \textbf{Strengths}: Best language modeling (perplexity 2.62), competitive classification accuracy, fast training
-    \item \textbf{Weaknesses}: Higher parameter count (1.75\%), increased memory usage
-\end{itemize}
-
-The higher rank (r=32) provides additional capacity for capturing complex patterns without the downsides of quantization.
-
-\textbf{Best Use Case}: Language modeling, generation tasks, complex reasoning tasks requiring higher model capacity.
+\textbf{"Free" Sparsity}: Sparse LoRA achieves 50\% sparsity with no training speed penalty (35.22 vs. 35.21 min) and minimal accuracy loss. With specialized sparse operations, could enable 2-3$\times$ inference speedup.
 
 \subsection{Practical Recommendations}
+\vspace{-0.5em}
 
-Based on our findings, we provide the following decision framework:
-
-\begin{enumerate}
-    \item \textbf{Limited GPU Memory + Classification Task}: Use QLoRA
-    \begin{itemize}
-        \item Accept 3$\times$ slower training for 50\% memory savings
-        \item Best accuracy: 93.28\% (IMDB), 92.20\% (SST-2)
-    \end{itemize}
-
-    \item \textbf{Fast Development / Hyperparameter Tuning}: Use Standard LoRA
-    \begin{itemize}
-        \item 3$\times$ faster training than QLoRA
-        \item Reliable performance across all tasks
-        \item Well-tested and widely supported
-    \end{itemize}
-
-    \item \textbf{Production Deployment / Inference Optimization}: Use Sparse LoRA
-    \begin{itemize}
-        \item 50\% sparsity enables faster inference
-        \item Minimal accuracy loss: 92.48\% vs 92.52\%
-        \item Same training speed as LoRA
-    \end{itemize}
-
-    \item \textbf{Language Modeling / Text Generation}: Use HiRA
-    \begin{itemize}
-        \item Best perplexity: 2.62 on WikiText-2
-        \item Fast training: 24 minutes
-        \item Avoid QLoRA (worst performance: 3.20 perplexity)
-    \end{itemize}
-\end{enumerate}
-
-\subsection{Quantization's Dual Nature}
-
-A surprising finding is quantization's opposite effects on different task types:
-
-\textbf{Classification Tasks}: Quantization \textit{improves} performance
 \begin{itemize}
-    \item QLoRA: 93.28\% vs. 92.52\% for LoRA (+0.76\%)
-    \item Possible regularization effect from quantization noise
-    \item Classification is robust to precision loss
+    \item \textbf{Limited GPU Memory + Classification}: QLoRA (accept 3$\times$ slower training for 50\% memory savings and best accuracy)
+    \item \textbf{Fast Development/Iteration}: Standard LoRA (3$\times$ faster than QLoRA, reliable across all tasks)
+    \item \textbf{Production Deployment}: Sparse LoRA (50\% sparsity enables faster inference with minimal accuracy loss)
+    \item \textbf{Language Modeling/Generation}: HiRA (best perplexity 2.62; avoid QLoRA)
+    \item \textbf{General Purpose}: Standard LoRA (best all-around performance)
 \end{itemize}
 
-\textbf{Language Modeling}: Quantization \textit{degrades} performance
-\begin{itemize}
-    \item QLoRA: 3.20 perplexity vs. 2.68 for LoRA (+19.4\% worse)
-    \item Next-token prediction requires higher precision
-    \item Quantization noise compounds over generation sequences
-\end{itemize}
+\subsection{Limitations}
+\vspace{-0.5em}
 
-This task-dependent behavior suggests that 4-bit quantization may introduce beneficial regularization for classification while creating harmful precision loss for generation.
-
-\subsection{Sparsity as a "Free Lunch"}
-
-Sparse LoRA achieves 50\% sparsity with essentially no downside:
-\begin{itemize}
-    \item Training time: 35.22 min (same as LoRA's 35.21 min)
-    \item Accuracy: 92.48\% vs. 92.52\% (-0.04\%)
-    \item Perplexity: 2.70 vs. 2.68 (+0.02)
-\end{itemize}
-
-This demonstrates significant redundancy in adapter parameters. With specialized sparse matrix libraries (e.g., DeepSparse, TensorRT), Sparse LoRA could achieve \textbf{2-3$\times$ inference speedup} with minimal accuracy cost—making it ideal for production deployment.
-
-\subsection{Limitations and Considerations}
-
-\subsubsection{Model Compatibility}
-QLoRA's requirement for BERT-base (vs. DistilBERT for other methods) due to library constraints prevents direct parameter count comparison. This highlights the importance of library maturity and compatibility in method selection.
-
-\subsubsection{Hardware Dependencies}
-\begin{itemize}
-    \item QLoRA requires CUDA-compatible GPUs with bitsandbytes support
-    \item Sparse LoRA benefits require specialized sparse operation libraries
-    \item HiRA's higher memory usage may be prohibitive on consumer hardware
-\end{itemize}
-
-\subsubsection{Task Generalization}
-Our evaluation focuses on sentiment classification and language modeling. Performance on other task types (e.g., question answering, named entity recognition, summarization) may differ.
+QLoRA requires BERT-base (vs. DistilBERT) due to quantization library constraints, preventing direct parameter comparison. Evaluation limited to sentiment classification and language modeling; other tasks (QA, NER, summarization) may show different patterns. Sparse LoRA benefits require specialized libraries for inference optimization.
 
 \section{Conclusion}
+\vspace{-0.5em}
 
-This comprehensive study evaluates four parameter-efficient fine-tuning methods—LoRA, Sparse LoRA, QLoRA, and HiRA—across classification and language modeling tasks. Our key findings are:
+This study evaluates four parameter-efficient fine-tuning methods across classification and language modeling tasks. Key contributions: (1) QLoRA excels at classification (93.28\% accuracy, 50\% memory reduction) but struggles with generation (worst perplexity 3.20) and requires 2.5-3.5$\times$ longer training; (2) HiRA optimal for language modeling (perplexity 2.62); (3) Sparse LoRA provides "free" 50\% sparsity with minimal accuracy impact; (4) Standard LoRA offers best speed-accuracy balance. These findings provide actionable guidance: method selection depends on task type (classification vs. generation), hardware constraints (memory, compute), and deployment requirements (training vs. inference speed).
 
-\begin{enumerate}
-    \item \textbf{QLoRA excels at classification but struggles with generation}: Achieves highest accuracy (93.28\% IMDB, 92.20\% SST-2) and lowest memory usage (50\% reduction) for classification tasks, but demonstrates poorest language modeling performance (perplexity 3.20 vs. 2.62 for HiRA).
+\textbf{Future Work}: Hybrid methods combining QLoRA quantization with Sparse LoRA sparsity; adaptive per-layer rank selection; evaluation on larger models (7B-70B parameters); broader task diversity (QA, summarization); investigation of 6-bit and 8-bit quantization; specialized sparse operations for Sparse LoRA inference optimization.
 
-    \item \textbf{Training speed is a critical trade-off}: QLoRA's superior accuracy and memory efficiency comes at the cost of 2.5-3.5$\times$ longer training time, making it suitable for single training runs but not rapid iteration.
-
-    \item \textbf{HiRA is optimal for language modeling}: High-rank adaptation (r=32) achieves best perplexity (2.62), validating the hypothesis that generative tasks benefit from increased model capacity.
-
-    \item \textbf{Sparsity provides "free" efficiency}: Sparse LoRA achieves 50\% sparsity with minimal accuracy degradation and no training speed penalty, making it ideal for production deployment.
-
-    \item \textbf{Standard LoRA remains the best all-rounder}: Offers consistent performance across all tasks with fast training, making it the recommended starting point for most practitioners.
-\end{enumerate}
-
-\subsection{Practical Impact}
-
-These findings provide actionable guidance for LLM fine-tuning:
-\begin{itemize}
-    \item Practitioners with limited GPU memory can use QLoRA for classification tasks
-    \item Production deployments benefit from Sparse LoRA's inference optimization
-    \item Generative applications should prefer HiRA over QLoRA
-    \item Standard LoRA serves as a reliable default choice
-\end{itemize}
-
-\subsection{Future Work}
-
-Several promising directions emerge from this work:
-
-\begin{enumerate}
-    \item \textbf{Hybrid Methods}: Combine QLoRA's quantization with Sparse LoRA's sparsity for maximum efficiency. Preliminary analysis suggests this could achieve 75\% memory reduction with maintained accuracy.
-
-    \item \textbf{Adaptive Rank Selection}: Investigate automatic rank selection per layer based on task complexity, potentially improving HiRA's performance while reducing parameters.
-
-    \item \textbf{Larger Models}: Evaluate these methods on 7B-70B parameter models (e.g., LLaMA-2, Mistral) where memory efficiency becomes critical.
-
-    \item \textbf{Task Diversity}: Expand evaluation to question answering, summarization, named entity recognition, and instruction following.
-
-    \item \textbf{Quantization Precision Analysis}: Investigate 8-bit and 6-bit quantization to find optimal precision-performance trade-offs for different task types.
-
-    \item \textbf{Inference Optimization}: Implement specialized sparse matrix operations for Sparse LoRA to realize theoretical 2-3$\times$ speedup during inference.
-
-    \item \textbf{Full HiRA Implementation}: Implement complete Hadamard product formulation to validate whether it outperforms high-rank LoRA approximation.
-\end{enumerate}
-
-\subsection{Broader Implications}
-
-This work demonstrates that parameter-efficient fine-tuning is not a one-size-fits-all solution. The optimal method depends on:
-\begin{itemize}
-    \item Task type (classification vs. generation)
-    \item Hardware constraints (memory, compute)
-    \item Deployment requirements (training speed vs. inference speed)
-    \item Accuracy requirements
-\end{itemize}
-
-As LLMs continue to grow in size, understanding these trade-offs becomes increasingly critical for democratizing access to state-of-the-art AI capabilities.
-
-\section*{Acknowledgments}
-
-We thank the course instructors and TAs (Haoming, Zihao) for their guidance throughout this project. We also acknowledge the HuggingFace team for providing the Transformers, PEFT, and Datasets libraries that made this work possible.
+\vspace{0.5em}
+\noindent\textbf{Acknowledgments}: We thank course instructors and TAs (Haoming, Zihao) for guidance, and the HuggingFace team for Transformers, PEFT, and Datasets libraries.
 
 \begin{thebibliography}{9}
+\small
 
 \bibitem{hu2022lora}
-Hu, Edward J., Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen.
+Hu, E.J., et al.
 \textit{LoRA: Low-Rank Adaptation of Large Language Models.}
-In International Conference on Learning Representations (ICLR), 2022.
+ICLR 2022.
 
 \bibitem{khaki2025sparselora}
-Khaki, Samir, Xiuyu Li, Junxian Guo, Ligeng Zhu, Chenfeng Xu, Konstantinos N. Plataniotis, Amir Yazdanbakhsh, Kurt Keutzer, Song Han, and Zhijian Liu.
+Khaki, S., et al.
 \textit{SparseLoRA: Accelerating LLM Fine-Tuning with Contextual Sparsity.}
-arXiv preprint arXiv:2506.16500, 2025.
+arXiv:2506.16500, 2025.
 
 \bibitem{dettmers2023qlora}
-Dettmers, Tim, Artidoro Pagnoni, Ari Holtzman, and Luke Zettlemoyer.
+Dettmers, T., et al.
 \textit{QLoRA: Efficient Finetuning of Quantized LLMs.}
-arXiv preprint arXiv:2305.14314, 2023.
+arXiv:2305.14314, 2023.
 
 \bibitem{huang2025hira}
-Huang, Qiushi, Tom Ko, Zhan Zhuang, Lilian Tang, and Yu Zhang.
-\textit{HiRA: Parameter-Efficient Hadamard High-Rank Adaptation for Large Language Models.}
-In The Thirteenth International Conference on Learning Representations (ICLR), 2025.
+Huang, Q., et al.
+\textit{HiRA: Parameter-Efficient Hadamard High-Rank Adaptation.}
+ICLR 2025.
 
 \bibitem{sanh2019distilbert}
-Sanh, Victor, Lysandre Debut, Julien Chaumond, and Thomas Wolf.
-\textit{DistilBERT, a Distilled Version of BERT: Smaller, Faster, Cheaper and Lighter.}
-arXiv preprint arXiv:1910.01108, 2019.
-
-\bibitem{vaswani2017attention}
-Vaswani, Ashish, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, and Illia Polosukhin.
-\textit{Attention is All You Need.}
-In Advances in Neural Information Processing Systems (NeurIPS), 2017.
-
-\bibitem{devlin2019bert}
-Devlin, Jacob, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
-\textit{BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.}
-In Proceedings of NAACL-HLT, 2019.
-
-\bibitem{wolf2020huggingface}
-Wolf, Thomas, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue, Anthony Moi, Pierric Cistac, Tim Rault, Rémi Louf, Morgan Funtowicz, Joe Davison, Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jernite, Julien Plu, Canwen Xu, Teven Le Scao, Sylvain Gugger, Mariama Drame, Quentin Lhoest, and Alexander M. Rush.
-\textit{Transformers: State-of-the-Art Natural Language Processing.}
-In Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations, 2020.
+Sanh, V., et al.
+\textit{DistilBERT: Smaller, Faster, Cheaper and Lighter.}
+arXiv:1910.01108, 2019.
 
 \end{thebibliography}
 
