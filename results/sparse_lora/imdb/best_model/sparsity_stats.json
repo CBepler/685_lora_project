@@ -1,0 +1,6 @@
+{
+  "sparsity_percentage": 50.0,
+  "zero_parameters": 147456,
+  "total_lora_parameters": 294912,
+  "nonzero_parameters": 147456
+}

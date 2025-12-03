@@ -1,0 +1,29 @@
+{
+  "model/model_name": "bert-base-uncased",
+  "model/task_type": "masked_lm",
+  "model/total_parameters": 109809210,
+  "model/trainable_parameters": 294912,
+  "model/trainable_percentage": 0.2685676365397766,
+  "model/lora_rank": 8,
+  "model/lora_alpha": 16,
+  "model/target_modules": [
+    "query",
+    "value"
+  ],
+  "epoch_1/train_loss": 1.6797076424742057,
+  "memory/system_memory_percent": 3.8,
+  "memory/system_memory_used_gb": 17.76915740966797,
+  "memory/gpu_memory_allocated_gb": 0.42820024490356445,
+  "memory/gpu_memory_reserved_gb": 7.0625,
+  "memory/gpu_memory_max_allocated_gb": 4.148171901702881,
+  "epoch_2/train_loss": 1.1679379527345461,
+  "epoch_3/train_loss": 1.1536472953222936,
+  "training_time_seconds": 2447.3997042179108,
+  "inference/avg_inference_time_per_sample": 0.009163191914558411,
+  "inference/throughput_samples_per_second": 109.13227719384633,
+  "inference/total_samples_measured": 320,
+  "final_model/total_parameters": 109809210,
+  "final_model/trainable_parameters": 0,
+  "final_model/trainable_percentage": 0.0,
+  "final_model/model_size_mb": 418.8967056274414
+}

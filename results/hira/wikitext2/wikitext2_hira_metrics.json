@@ -1,0 +1,31 @@
+{
+  "model/model_name": "bert-base-uncased",
+  "model/task_type": "masked_lm",
+  "model/total_parameters": 110693946,
+  "model/trainable_parameters": 1179648,
+  "model/trainable_percentage": 1.0656842967726528,
+  "model/lora_rank": 32,
+  "model/lora_alpha": 64,
+  "model/target_modules": [
+    "query",
+    "value"
+  ],
+  "model/method": "high_rank_lora",
+  "model/note": "Simplified HiRA using high-rank LoRA approximation",
+  "epoch_1/train_loss": 1.513081669158146,
+  "memory/system_memory_percent": 3.5,
+  "memory/system_memory_used_gb": 16.444263458251953,
+  "memory/gpu_memory_allocated_gb": 0.43808794021606445,
+  "memory/gpu_memory_reserved_gb": 7.08203125,
+  "memory/gpu_memory_max_allocated_gb": 4.166848659515381,
+  "epoch_2/train_loss": 1.145366435606755,
+  "epoch_3/train_loss": 1.133314488967779,
+  "training_time_seconds": 2452.5174973011017,
+  "inference/avg_inference_time_per_sample": 0.009225504100322723,
+  "inference/throughput_samples_per_second": 108.39516075495737,
+  "inference/total_samples_measured": 320,
+  "final_model/total_parameters": 110693946,
+  "final_model/trainable_parameters": 0,
+  "final_model/trainable_percentage": 0.0,
+  "final_model/model_size_mb": 422.2717056274414
+}
